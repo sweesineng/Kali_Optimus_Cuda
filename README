@@ -1,0 +1,86 @@
+Installation for Optimus Nvidia + Cuda + Pyrit
+Prerequisite: Kali USB Live Persistence
+
+1. Start Kali USB Live in Persistence Mode with nomodeset=0
+	-> On boot selection menu, select persistence mode, 
+	-> Press Tab into cmd line add: "nomodeset=0"
+
+2. Bootup Kali, open terminal, type:
+	-> modprobe -r nouveau
+
+3. Install Build-essential & linux-header
+	-> apt-get install build-essential linux-headers-$(uname -r)
+
+4. Install BBSwitch-dkms
+	-> apt-get install bbswitch-dkms
+
+5. Disable descrete card
+	-> modprobe bbswitch load_state=0
+	(To check if bbswitch working properlly: cat /proc/acpi/bbswitch)
+ 
+6. Blacklist nouveau driver on boot
+	-> echo "blacklist nouveau" >> /etc/modprobe.d/nouveau-blacklist.conf
+
+7. Set descete card off on boot
+	-> echo "bbswitch load_state=0" >> /etc/modules
+
+8. Install Nvidia driver
+	-> apt-get install nvidia-kernel-dkms nvidia-xconfig nvidia-settings
+	-> apt-get install nvidia-vdpau-driver vdpau-va-driver mesa-utils
+
+9. Install Bumblebee-nvidia
+	-> apt-get install bumblebee-nvidia 
+
+10. Add user group for bumblebee
+	-> usermod -aG bumblebee $USER
+
+11. Download Virtualgl source from https://sourceforge.net/projects/virtualgl/files/
+	-> dpkg -i /root/Downloads/virtualgl_*.deb
+
+12. Restart bumblebee service
+	-> service bumblebeed restart
+
+13. Recompile Bumblebee
+	-> apt-get install devscripts
+	-> apt-get build-dep bumblebee
+	-> apt-get source bumblebee
+	-> sed -i 's/"Xorg"/"\/usr\/lib\/xorg\/Xorg"/' bumblebee-3.2.1/src/bbsecondary.h
+	-> cd bumblebee-*
+	-> dpkg-buildpackage -us -uc -nc
+	-> dpkg -i ../bumblebee_*.deb
+	-> service bumblebeed restart
+	-> reboot 
+
+14. Uncommented BusID "PCI:01:00:0" and replace the 1 with the number you get from lspci
+	-> nano /etc/bumblebee/xorg.conf.nvidia
+	-> service bumblebeed restart
+
+15. Add "export PATH=$PATH:/opt/VirtualGL/bin:/usr/local/cuda-7.5/bin" to the end of .bashrc
+	-> nano ~/.bashrc
+	-> source ~/.bashrc
+
+16. Download Cuda from https://developer.nvidia.com/cuda-downloads , Grab the x64 or 14.04 *.run file 
+	-> chmod +x Downloads/cuda_*.run
+	-> ./Downloads/cuda_*.run --override compiler 
+
+17. Edit /etc/ld.so.conf, so that it match:
+	>>include /etc/ld.so.conf.d/*.conf
+	>>/usr/local/cuda-7.5/lib64
+	-> ldconfig
+	-> apt-get install libcuda1
+
+18. To prevent "error -- unsupported GNU version! gcc versions later than 4.9 are not supported!", 
+	just uncomment line 115 in: /usr/local/cuda/include/host_config.h
+	-> nano /usr/local/cuda/include/host_config.h
+
+18. Download and install pyrit
+	-> svn checkout http://pyrit.googlecode.com/svn/trunk/ pyrit
+	-> apt-get install libssl-dev libpcap0.8-dev python-dev
+	-> cd pyrit/pyrit
+	-> python setup.py build
+	-> python setup.py install
+	-> cd ../cpyrit_cuda
+	-> python setup.py build
+	-> python setup.py install
+	-> optirun pyrit list_cores
+	-> optirun pyrit benchmark 
